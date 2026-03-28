@@ -1,0 +1,263 @@
+{
+  "info": {
+    "name": "Task Manager REST API v1",
+    "description": "Complete Postman collection for authentication, task CRUD, and user management.\n\n## Setup\n1. Import this collection\n2. Set the `base_url` variable to your server (default: http://localhost:5000)\n3. Run **Register** or **Login** — the `access_token` variable is set automatically via test scripts\n4. All protected endpoints will use the token automatically",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "taskapi-v1-collection"
+  },
+  "variable": [
+    { "key": "base_url",     "value": "http://localhost:5000/api/v1", "type": "string" },
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "refresh_token","value": "", "type": "string" },
+    { "key": "task_id",      "value": "", "type": "string" },
+    { "key": "user_id",      "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane@example.com\",\n  \"password\": \"SecurePass1\",\n  \"role\": \"user\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "if (pm.response.code === 201) {",
+              "  const { data } = pm.response.json();",
+              "  pm.collectionVariables.set('access_token', data.accessToken);",
+              "  pm.collectionVariables.set('refresh_token', data.refreshToken);",
+              "  pm.collectionVariables.set('user_id', data.user.id);",
+              "  pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "  pm.test('Has tokens', () => { pm.expect(data.accessToken).to.be.a('string'); });",
+              "}"
+            ]}
+          }]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin@1234\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "if (pm.response.code === 200) {",
+              "  const { data } = pm.response.json();",
+              "  pm.collectionVariables.set('access_token', data.accessToken);",
+              "  pm.collectionVariables.set('refresh_token', data.refreshToken);",
+              "  pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "}"
+            ]}
+          }]
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/auth/me",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }] }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/refresh",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "if (pm.response.code === 200) {",
+              "  const { data } = pm.response.json();",
+              "  pm.collectionVariables.set('access_token', data.accessToken);",
+              "  pm.collectionVariables.set('refresh_token', data.refreshToken);",
+              "}"
+            ]}
+          }]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/logout",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "List Tasks",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/tasks?page=1&limit=10&sort=created_at&order=desc",
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "limit",    "value": "10" },
+                { "key": "sort",     "value": "created_at" },
+                { "key": "order",    "value": "desc" },
+                { "key": "status",   "value": "pending", "disabled": true },
+                { "key": "priority", "value": "high",    "disabled": true },
+                { "key": "search",   "value": "api",     "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Task by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/tasks/{{task_id}}"
+          }
+        },
+        {
+          "name": "Create Task",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/tasks",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Implement API versioning\",\n  \"description\": \"Add /api/v1 prefix to all routes\",\n  \"status\": \"pending\",\n  \"priority\": \"high\",\n  \"due_date\": \"2025-12-31\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "if (pm.response.code === 201) {",
+              "  const { data } = pm.response.json();",
+              "  pm.collectionVariables.set('task_id', data.task.id);",
+              "}"
+            ]}
+          }]
+        },
+        {
+          "name": "Update Task (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/tasks/{{task_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"priority\": \"medium\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/tasks/{{task_id}}"
+          }
+        },
+        {
+          "name": "Task Stats (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/tasks/stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users (Admin)",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/users?page=1&limit=20",
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "role",  "value": "user", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users/{{user_id}}"
+          }
+        },
+        {
+          "name": "Update User Role / Status",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/users/{{user_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"admin\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/users/{{user_id}}"
+          }
+        },
+        {
+          "name": "Change My Password",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/users/me/password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Admin@1234\",\n  \"newPassword\": \"NewAdmin@5678\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:5000/health",
+            "auth": { "type": "noauth" }
+          }
+        }
+      ]
+    }
+  ]
+}
