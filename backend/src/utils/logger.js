@@ -1,8 +1,6 @@
 const winston = require('winston');
 const path = require('path');
-
 const { combine, timestamp, printf, colorize, errors } = winston.format;
-
 const logFormat = printf(({ level, message, timestamp, stack }) => {
   return `${timestamp} [${level}]: ${stack || message}`;
 });

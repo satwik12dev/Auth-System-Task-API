@@ -1,11 +1,8 @@
 const jwt = require('jsonwebtoken');
-
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'change_this_access_secret_in_production';
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'change_this_refresh_secret_in_production';
-
 const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES || '15m';
 const REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || '7d';
-
 /**
  * Generate a short-lived access token
  */
@@ -16,7 +13,6 @@ const generateAccessToken = (payload) => {
     audience: 'task-api-client',
   });
 };
-
 /**
  * Generate a long-lived refresh token
  */
@@ -27,7 +23,6 @@ const generateRefreshToken = (payload) => {
     audience: 'task-api-client',
   });
 };
-
 /**
  * Verify an access token; throws if invalid/expired
  */
@@ -55,11 +50,10 @@ const getRefreshTokenExpiry = () => {
   const days = parseInt(REFRESH_EXPIRES) || 7;
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 };
-
 module.exports = {
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,
   verifyRefreshToken,
   getRefreshTokenExpiry,
-};
+}; 

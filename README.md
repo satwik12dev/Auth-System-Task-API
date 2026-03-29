@@ -185,35 +185,40 @@ npm run dev
 ---
 
 ## 🗃️ Database Schema
-
+Create the tables in postgreSQL using docker image by run the following command in the docker terminal 
+"docker exec -it taskapi_postgres psql -U postgres -d taskapi"
 ```sql
+-- USERS
 CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  email VARCHAR(100) UNIQUE NOT NULL,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT,
+  email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
-  role VARCHAR(10) DEFAULT 'user',
+  role TEXT DEFAULT 'user',
   is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  email VARCHAR(100) UNIQUE NOT NULL,
-  password TEXT NOT NULL,
-  role VARCHAR(10) DEFAULT 'user',
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- TASKS
+CREATE TABLE tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT DEFAULT 'pending',
+  priority TEXT DEFAULT 'medium',
+  due_date DATE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE users (
+-- REFRESH TOKENS (FIXED)
+CREATE TABLE refresh_tokens (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  email VARCHAR(100) UNIQUE NOT NULL,
-  password TEXT NOT NULL,
-  role VARCHAR(10) DEFAULT 'user',
-  is_active BOOLEAN DEFAULT true,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL,
+  expires_at TIMESTAMP NOT NULL,   -- 🔥 IMPORTANT FIX
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```

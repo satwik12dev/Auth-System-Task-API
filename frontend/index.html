@@ -504,16 +504,58 @@
       clearToken() { this._token = null; },
 
       async request(method, path, body, noAuth = false) {
-        const headers = { 'Content-Type': 'application/json' };
-        if (this._token && !noAuth) headers['Authorization'] = `Bearer ${this._token}`;
-        const res = await fetch(`${API_BASE}${path}`, {
-          method,
-          headers,
-          body: body ? JSON.stringify(body) : undefined,
-        });
-        const data = await res.json();
-        return { ok: res.ok, status: res.status, data };
-      },
+  const headers = { 'Content-Type': 'application/json' };
+
+  const stored = JSON.parse(sessionStorage.getItem('auth') || '{}');
+
+  if (stored.token && !noAuth) {
+    headers['Authorization'] = `Bearer ${stored.token}`;
+  }
+
+  let res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  let data = {};
+  try { data = await res.json(); } catch {}
+
+  // 🔥 HANDLE TOKEN EXPIRED
+  if (res.status === 401 && data?.message?.includes('expired')) {
+
+    console.log("🔄 Token expired → refreshing...");
+
+    const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: stored.refreshToken }),
+    });
+
+    const refreshData = await refreshRes.json();
+
+    if (refreshRes.ok) {
+      // ✅ Save new tokens
+      const newAuth = {
+        user: stored.user,
+        token: refreshData.data.accessToken,
+        refreshToken: refreshData.data.refreshToken,
+      };
+
+      sessionStorage.setItem('auth', JSON.stringify(newAuth));
+
+      // 🔥 Retry original request
+      return this.request(method, path, body, noAuth);
+
+    } else {
+      // ❌ Refresh failed → logout
+      sessionStorage.removeItem('auth');
+      window.location.reload();
+    }
+  }
+
+  return { ok: res.ok, status: res.status, data };
+},
 
       get: (path) => api.request('GET', path),
       post: (path, body, noAuth) => api.request('POST', path, body, noAuth),
@@ -935,85 +977,140 @@
 
     // ─── Users Page (Admin) ───────────────────────────────────────────────────
     const UsersPage = () => {
-      const [users, setUsers] = useState([]);
-      const [meta, setMeta] = useState({ total:0, page:1 });
-      const [loading, setLoading] = useState(true);
-      const [page, setPage] = useState(1);
-      const { show, ToastEl } = useToast();
+  const [users, setUsers] = useState([]);
+  const [meta, setMeta] = useState({ total:0, page:1 });
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const { show, ToastEl } = useToast();
 
-      const fetch = async () => {
-        setLoading(true);
-        const res = await api.get(`/users?page=${page}&limit=15`);
-        if (res.ok) { setUsers(res.data.data||[]); setMeta(res.data.meta); }
-        setLoading(false);
-      };
-      useEffect(() => { fetch(); }, [page]);
+  const fetch = async () => {
+    setLoading(true);
+    const res = await api.get(`/users?page=${page}&limit=15`);
+    console.log(res.data);
+    if (res.ok) { 
+      setUsers(res.data.data || []); 
+      setMeta(res.data.meta || {}); 
+    }
+    setLoading(false);
+  };
 
-      const toggleActive = async (u) => {
-        const res = await api.patch(`/users/${u.id}`, { is_active: !u.is_active });
-        if (res.ok) { show(`User ${u.is_active?'deactivated':'activated'}`); fetch(); }
-        else show(res.data.message, 'error');
-      };
+  useEffect(() => { fetch(); }, [page]);
 
-      const promoteAdmin = async (u) => {
-        const newRole = u.role === 'admin' ? 'user' : 'admin';
-        const res = await api.patch(`/users/${u.id}`, { role: newRole });
-        if (res.ok) { show(`Role updated to ${newRole}`); fetch(); }
-        else show(res.data.message, 'error');
-      };
+  const toggleActive = async (u) => {
+    const res = await api.patch(`/users/${u.id}`, { is_active: !u.is_active });
+    if (res.ok) { show(`User ${u.is_active ? 'deactivated' : 'activated'}`); fetch(); }
+    else show(res.data.message, 'error');
+  };
 
-      return (
-        <div className="fade-in">
-          {ToastEl}
-          <div className="card">
-            {loading ? (
-              <div className="loading-center"><span className="spinner" style={{width:24,height:24}}/></div>
-            ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
-                  <tbody>
-                    {users.map(u => (
-                      <tr key={u.id}>
-                        <td>
-                          <div style={{display:'flex', alignItems:'center', gap:10}}>
-                            <div style={{ width:32, height:32, background:'linear-gradient(135deg,var(--accent),var(--accent2))', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:12, color:'var(--bg)', flexShrink:0 }}>
-                              {u.name[0].toUpperCase()}
-                            </div>
-                            <div>
-                              <div style={{fontWeight:500}}>{u.name}</div>
-                              <div style={{color:'var(--muted)', fontSize:12}}>{u.email}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td><span className={`badge badge-${u.role}`}>{u.role}</span></td>
-                        <td>
-                          <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:13, color: u.is_active?'var(--accent)':'var(--danger)' }}>
-                            <span style={{ width:6, height:6, borderRadius:'50%', background: u.is_active?'var(--accent)':'var(--danger)', display:'inline-block' }}/>
-                            {u.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td style={{color:'var(--muted)', fontSize:13}}>{new Date(u.created_at).toLocaleDateString()}</td>
-                        <td>
-                          <div style={{display:'flex', gap:6}}>
-                            <button className="btn btn-secondary btn-sm" onClick={() => promoteAdmin(u)}>
-                              {u.role==='admin'?'Demote':'Promote'}
-                            </button>
-                            <button className={`btn btn-sm ${u.is_active?'btn-danger':'btn-secondary'}`} onClick={() => toggleActive(u)}>
-                              {u.is_active?'Deactivate':'Activate'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+  const promoteAdmin = async (u) => {
+    const newRole = u.role === 'admin' ? 'user' : 'admin';
+    const res = await api.patch(`/users/${u.id}`, { role: newRole });
+    if (res.ok) { show(`Role updated to ${newRole}`); fetch(); }
+    else show(res.data.message, 'error');
+  };
+
+  return (
+    <div className="fade-in">
+      {ToastEl}
+
+      <div className="card">
+        {loading ? (
+          <div className="loading-center">
+            <span className="spinner" style={{ width:24, height:24 }}/>
           </div>
-        </div>
-      );
-    };
+        ) : (
+          <div className="table-wrap">
+            <table>
+
+              {/* ✅ HEADER */}
+              <thead>
+                <tr>
+                  <th>Email (Username)</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+
+              {/* ✅ BODY */}
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id}>
+
+                    {/* 🔥 EMAIL */}
+                    <td>
+                      <div>
+                        <div style={{ fontWeight:500 }}>{u.email}</div>
+                        <div style={{ color:'var(--muted)', fontSize:12 }}>
+                          ID: {u.id}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* 🔹 ROLE */}
+                    <td>
+                      <span className={`badge badge-${u.role}`}>
+                        {u.role}
+                      </span>
+                    </td>
+
+                    {/* 🔥 STATUS */}
+                    <td>
+                      <span style={{
+                        display:'inline-flex',
+                        alignItems:'center',
+                        gap:5,
+                        fontSize:13,
+                        color: u.is_active ? 'var(--accent)' : 'var(--danger)'
+                      }}>
+                        <span style={{
+                          width:6,
+                          height:6,
+                          borderRadius:'50%',
+                          background: u.is_active ? 'var(--accent)' : 'var(--danger)'
+                        }}/>
+                        {u.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+
+                    {/* 🔹 DATE */}
+                    <td style={{ color:'var(--muted)', fontSize:13 }}>
+                      {new Date(u.created_at).toLocaleDateString()}
+                    </td>
+
+                    {/* 🔹 ACTIONS */}
+                    <td>
+                      <div style={{ display:'flex', gap:6 }}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => promoteAdmin(u)}
+                        >
+                          {u.role === 'admin' ? 'Demote' : 'Promote'}
+                        </button>
+
+                        <button
+                          className={`btn btn-sm ${
+                            u.is_active ? 'btn-danger' : 'btn-secondary'
+                          }`}
+                          onClick={() => toggleActive(u)}
+                        >
+                          {u.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
+                    </td>
+
+                  </tr>
+                ))}
+              </tbody>
+
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
     // ─── API Tester Page ──────────────────────────────────────────────────────
     const ApiTesterPage = ({ token }) => {
@@ -1210,8 +1307,10 @@
       };
 
       useEffect(() => {
-        if (auth?.token) api.setToken(auth.token);
-      }, []);
+        if (auth?.token) {
+          api.setToken(auth.token);
+        }
+      }, [auth]);
 
       if (!auth) return <AuthPage onAuth={handleAuth} />;
       return <AppShell user={auth.user} token={auth.token} onLogout={handleLogout} />;
