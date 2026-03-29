@@ -185,7 +185,8 @@ npm run dev
 ---
 
 ## 🗃️ Database Schema
-
+Create the tables in postgreSQL using docker image by run the following command in the docker terminal
+docker exec -it taskapi_postgres psql -U postgres -d taskapi
 ```sql
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
@@ -197,23 +198,23 @@ CREATE TABLE users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE users (
+CREATE TABLE tasks (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  email VARCHAR(100) UNIQUE NOT NULL,
-  password TEXT NOT NULL,
-  role VARCHAR(10) DEFAULT 'user',
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  status VARCHAR(20) DEFAULT 'pending',
+  priority VARCHAR(20) DEFAULT 'medium',
+  due_date DATE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE users (
+CREATE TABLE refresh_tokens (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  email VARCHAR(100) UNIQUE NOT NULL,
-  password TEXT NOT NULL,
-  role VARCHAR(10) DEFAULT 'user',
-  is_active BOOLEAN DEFAULT true,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
