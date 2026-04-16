@@ -600,7 +600,6 @@
         </div>
       );
     };
-
     // ─── useToast ─────────────────────────────────────────────────────────────
     const useToast = () => {
       const [toast, setToast] = useState(null);
@@ -609,7 +608,6 @@
       const ToastEl = toast ? <Toast key={toast.id} msg={toast.msg} type={toast.type} onDismiss={dismiss} /> : null;
       return { show, ToastEl };
     };
-
     // ─── Auth Page ────────────────────────────────────────────────────────────
     const AuthPage = ({ onAuth }) => {
       const [tab, setTab] = useState('login');
@@ -617,9 +615,7 @@
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState('');
       const { show, ToastEl } = useToast();
-
       const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
-
       const handleSubmit = async () => {
         setError('');
         setLoading(true);
@@ -642,20 +638,17 @@
         }
         setLoading(false);
       };
-
       const fillDemo = (role) => {
         if (role === 'admin') setForm(f => ({ ...f, email: 'admin@example.com', password: 'Admin@1234' }));
         else setForm(f => ({ ...f, email: 'jane@example.com', password: 'User@1234' }));
         setTab('login');
       };
-
       return (
         <div className="auth-page">
           {ToastEl}
           <div className="auth-card fade-in">
             <div className="auth-logo">⬡ TaskAPI</div>
             <div className="auth-subtitle">REST API · JWT · Role-Based Access</div>
-
             <div className="alert alert-info" style={{ marginBottom: 20 }}>
               <Icon name="info" size={14} />
               <div>
@@ -666,7 +659,6 @@
                 </div>
               </div>
             </div>
-
             <div className="auth-tabs">
               <button className={`auth-tab ${tab==='login'?'active':''}`} onClick={() => { setTab('login'); setError(''); }}>Login</button>
               <button className={`auth-tab ${tab==='register'?'active':''}`} onClick={() => { setTab('register'); setError(''); }}>Register</button>
