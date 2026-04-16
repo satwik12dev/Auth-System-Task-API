@@ -610,93 +610,148 @@
     };
     // ─── Auth Page ────────────────────────────────────────────────────────────
     const AuthPage = ({ onAuth }) => {
-      const [tab, setTab] = useState('login');
-      const [form, setForm] = useState({ name: '', email: '', password: '', role: 'user' });
-      const [loading, setLoading] = useState(false);
-      const [error, setError] = useState('');
-      const { show, ToastEl } = useToast();
-      const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
-      const handleSubmit = async () => {
-        setError('');
-        setLoading(true);
-        try {
-          const endpoint = tab === 'login' ? '/auth/login' : '/auth/register';
-          const body = tab === 'login'
-            ? { email: form.email, password: form.password }
-            : form;
-          const res = await api.post(endpoint, body, true);
-          if (!res.ok) {
-            const msg = res.data.errors
-              ? res.data.errors.map(e => e.message).join(', ')
-              : res.data.message;
-            setError(msg);
-          } else {
-            onAuth(res.data.data.user, res.data.data.accessToken, res.data.data.refreshToken);
-          }
-        } catch(e) {
-          setError('Network error — is the backend running on port 5000?');
-        }
-        setLoading(false);
-      };
-      const fillDemo = (role) => {
-        if (role === 'admin') setForm(f => ({ ...f, email: 'admin@example.com', password: 'Admin@1234' }));
-        else setForm(f => ({ ...f, email: 'jane@example.com', password: 'User@1234' }));
-        setTab('login');
-      };
-      return (
-        <div className="auth-page">
-          {ToastEl}
-          <div className="auth-card fade-in">
-            <div className="auth-logo">⬡ TaskAPI</div>
-            <div className="auth-subtitle">REST API · JWT · Role-Based Access</div>
-            <div className="alert alert-info" style={{ marginBottom: 20 }}>
-              <Icon name="info" size={14} />
-              <div>
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>Demo accounts (after seeding):</div>
-                <div style={{ display:'flex', gap: 8 }}>
-                  <button className="btn btn-sm btn-secondary" onClick={() => fillDemo('admin')}>Admin</button>
-                  <button className="btn btn-sm btn-secondary" onClick={() => fillDemo('user')}>User</button>
-                </div>
-              </div>
-            </div>
-            <div className="auth-tabs">
-              <button className={`auth-tab ${tab==='login'?'active':''}`} onClick={() => { setTab('login'); setError(''); }}>Login</button>
-              <button className={`auth-tab ${tab==='register'?'active':''}`} onClick={() => { setTab('register'); setError(''); }}>Register</button>
-            </div>
+  const [tab, setTab] = useState('login');
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'user' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-            {error && <div className="alert alert-error"><Icon name="warning" size={14}/>{error}</div>}
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
-            {tab === 'register' && (
-              <div className="form-group">
-                <label>Full Name</label>
-                <input value={form.name} onChange={set('name')} placeholder="Jane Doe" />
-              </div>
-            )}
-            <div className="form-group">
-              <label>Email</label>
-              <input type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" />
-            </div>
-            <div className="form-group">
-              <label>Password</label>
-              <input type="password" value={form.password} onChange={set('password')} placeholder="Min 8 chars, 1 uppercase, 1 number" />
-            </div>
-            {tab === 'register' && (
-              <div className="form-group">
-                <label>Role</label>
-                <select value={form.role} onChange={set('role')}>
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-            )}
+  const handleSubmit = async () => {
+    setError('');
+    setLoading(true);
 
-            <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} style={{ marginTop: 8 }}>
-              {loading ? <><span className="spinner" style={{width:14,height:14}}/> Processing…</> : tab === 'login' ? 'Login' : 'Create Account'}
-            </button>
-          </div>
+    try {
+      const endpoint = tab === 'login' ? '/auth/login' : '/auth/register';
+
+      const body = tab === 'login'
+        ? { email: form.email, password: form.password }
+        : form;
+
+      const res = await api.post(endpoint, body, true);
+
+      if (!res.ok) {
+        const msg = res.data.errors
+          ? res.data.errors.map(e => e.message).join(', ')
+          : res.data.message;
+
+        setError(msg);
+      } else {
+        onAuth(
+          res.data.data.user,
+          res.data.data.accessToken,
+          res.data.data.refreshToken
+        );
+      }
+    } catch (e) {
+      setError('Network error — check backend connection');
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <div className="auth-page">
+      <div className="auth-card fade-in">
+        
+        {/* Logo */}
+        <div className="auth-logo">⬡ TaskAPI</div>
+        <div className="auth-subtitle">
+          REST API · JWT · Role-Based Access
         </div>
-      );
-    };
+
+
+        {/* Tabs */}
+        <div className="auth-tabs">
+          <button
+            className={`auth-tab ${tab === 'login' ? 'active' : ''}`}
+            onClick={() => { setTab('login'); setError(''); }}
+          >
+            Login
+          </button>
+
+          <button
+            className={`auth-tab ${tab === 'register' ? 'active' : ''}`}
+            onClick={() => { setTab('register'); setError(''); }}
+          >
+            Register
+          </button>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="alert alert-error">
+            <Icon name="warning" size={14} />
+            {error}
+          </div>
+        )}
+
+        {/* Register Name */}
+        {tab === 'register' && (
+          <div className="form-group">
+            <label>Full Name</label>
+            <input
+              value={form.name}
+              onChange={set('name')}
+              placeholder="Jane Doe"
+            />
+          </div>
+        )}
+
+        {/* Email */}
+        <div className="form-group">
+          <label>Email</label>
+          <input
+            type="email"
+            value={form.email}
+            onChange={set('email')}
+            placeholder="you@example.com"
+          />
+        </div>
+
+        {/* Password */}
+        <div className="form-group">
+          <label>Password</label>
+          <input
+            type="password"
+            value={form.password}
+            onChange={set('password')}
+            placeholder="Min 8 chars, 1 uppercase, 1 number"
+          />
+        </div>
+
+        {/* Role */}
+        {tab === 'register' && (
+          <div className="form-group">
+            <label>Role</label>
+            <select value={form.role} onChange={set('role')}>
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        )}
+
+        {/* Button */}
+        <button
+          className="btn btn-primary"
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{ marginTop: 8 }}
+        >
+          {loading ? (
+            <>
+              <span className="spinner" style={{ width: 14, height: 14 }} />
+              Processing…
+            </>
+          ) : (
+            tab === 'login' ? 'Login' : 'Create Account'
+          )}
+        </button>
+
+      </div>
+    </div>
+  );
+};
 
     // ─── Dashboard Overview ───────────────────────────────────────────────────
     const DashboardPage = ({ user }) => {
