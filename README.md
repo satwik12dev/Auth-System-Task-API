@@ -362,10 +362,9 @@ app.use('/api/v1/products', productRoutes);
 - [x] Frontend UI
 ---
 
-*Built in 3 days as a full-stack REST API assessment project.*
+*Built in 3 days as a full-stack REST API assessment project using Docker.*
 ---
 ## Author
-
 Built by Satwik 🚀
 Full Stack Developer
 ---
