@@ -98,14 +98,6 @@ npm run dev
 **Frontend:** Open `frontend/index.html` in a browser (or serve with `npx serve frontend`).
 
 ---
-
-## 🔐 Demo Credentials (after seeding)
-
-| Role  | Email                | Password    |
-|-------|----------------------|-------------|
-| Admin | admin@example.com    | Admin@1234  |
-| User  | jane@example.com     | User@1234   |
-
 ---
 
 ## 📌 API Reference
